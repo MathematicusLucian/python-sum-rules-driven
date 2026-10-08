@@ -12,7 +12,13 @@ class SumClass:
         for integer in integers:
             if condition(integer):
                 numberSum = numberSum + integer
-        return numberSum 
+        return numberSum
+    
+    def sumOfNumbers2(integers):
+        return [sum(integer for integer in integers if "2" not in str(integer))][0] 
+    
+    def sumOfNumbers2b(integers, condition):
+        return sum(integer for integer in integers if condition(integer)) 
 
 sumObj = SumClass
 
@@ -21,4 +27,6 @@ integers = [1,2,3,4]
 sumExcludingTwo = lambda integer: integer != 2 
 
 print(sumObj.sumOfNumbers1(integers)) # 8
-print(sumObj.sumOfNumbers1b(integers, sumExcludingTwo)) # 8 
+print(sumObj.sumOfNumbers1b(integers, sumExcludingTwo)) # 8
+print(sumObj.sumOfNumbers2(integers)) # 8
+print(sumObj.sumOfNumbers2b(integers, sumExcludingTwo)) # 8 
