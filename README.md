@@ -2,9 +2,84 @@
 
 ## Overview
 
-This repo contains two related examples:
+```mermaid
+flowchart TB
+    subgraph core["core_rules_engine.py (domain-agnostic)"]
+        R["Rule (base)<br/>to_predicate()"]
+        E["RuleEngine[T]<br/>filter / count / reduce"]
+        S["show_errors()"]
+    end
 
-1. **`sum_rule_engine.py`** — the attached Pydantic + callable-rule file for filtering and summing integers.
+    subgraph sum["sum_service.py (domain: ints)"]
+        SS["SumService"]
+        IR["Int rules<br/>Exclude / Include / Evens / Odds /<br/>GreaterThan / LessThan /<br/>DivisibleBy / IntInSet"]
+        SI["SumInput<br/>integers, rule, condition<br/>resolve_condition()"]
+    end
+
+    subgraph match["matcher_service.py (domain: strings)"]
+        MS["MatcherService"]
+        SR["Str rules<br/>Substring / StrInSet"]
+        MI["SelectionInput<br/>items, rule, predicate, allowed<br/>resolve_predicate()"]
+    end
+
+    SS -- "constructor injects<br/>RuleEngine[int]" --> E
+    MS -- "constructor injects<br/>RuleEngine[str]" --> E
+    IR -. "subclass" .-> R
+    SR -. "subclass" .-> R
+    SS --- SI
+    MS --- MI
+
+    classDef coreFill fill:#eef,stroke:#44a
+    classDef sumFill fill:#efe,stroke:#4a4
+    classDef matchFill fill:#fee,stroke:#a44
+    class R,E,S coreFill
+    class SS,IR,SI sumFill
+    class MS,SR,MI matchFill
+```
+
+Key relationships the diagram is meant to show:
+- Vertical arrows = dependency injection. Services depend on the engine. The engine does not depend on services. No cycles.
+- Dotted subclass lines = inheritance. Domain rules extend the abstract Rule base so Pydantic can discriminate on kind.
+- Solid --- lines = composition. Each service owns its rules and its input container.
+- No line between SumService and MatcherService. That's the point. They are siblings, not collaborators.
+
+This repo `v4` contains:
+
+1. **`core_rules_engine.py.py`** — RuleEngine is generic and stateless. It does filter, count, reduce. The Pydantic + callable-rule file for filtering (primitive operation (filter, count, reduce) goes in the engine)
+2. **`sum_service.py`** — SumService injects the engine and calls reduce(..., operator.add, 0). The simple selection/counting functions, plus a structured Pydantic/rule-based variant.
+2. **`matcher_service.py`** — MatcherService injects the engine and calls filter / count. The simple selection/matching functions, plus a structured Pydantic/rule-based variant.
+
+SumService and MatcherService as siblings, both composing the same RuleEngine. 
+
+- Rules stay domain-specific (int rules vs str rules) because Pydantic discriminated unions are cleaner that way.
+
+- DI is the seam: swap the engine, mock it in tests, or add a new service (e.g. AverageService) without touching the engine.
+
+- Cycle risk. Today SumService doesn’t need MatcherService. Tomorrow maybe MatcherService needs a sum. Now you have a cycle. You start injecting lazy proxies or event buses to break it. Bad.
+
+- Wrong coupling. “Sum” and “match” are sibling domains. A dependency between them says one domain is part of the other. It isn’t. Summing numbers and matching strings are peers.
+
+- Policy (precedence, defaults, logging) is a policy object.
+
+- Test pain. To test MatcherService, you now need a working SumService, which needs a RuleEngine, which needs… You’ve turned a two-object test into a graph. 
+
+- Single responsibility. RuleEngine knows only “iterate, test, accumulate.” SumService knows only “add numbers.” MatcherService knows only “select/count strings.” Rules know only how to become predicates.
+
+- Open/closed. Add a new domain service (AverageService, MaxService) or new rules without touching the engine.
+
+- Dependency inversion. Services depend on RuleEngine, not on each other. We can inject a mock or a logging engine in tests.
+
+- DRY. Filter, count, and reduce logic live once in the engine.
+
+- KISS/YAGNI caveat. If we only ever need to sum ints and match strings in a script, the three original functions are still better. This design pays off when rules come from JSON/UI/DB and we’ll add more domains.
+
+Honest trade-off: the merged version is more machinery. It’s justified when rules are data-driven and we have multiple domains. For a one-off list filter, keep the three functions. We can use the engine when the rules outlive the script.
+
+Potential further consolidation: both services need to resolve `condition > rule > default.` Right now that logic lives in two free functions, `resolve_int_predicate` and `resolve_str_predicate`. If that policy grew (audit logging, precedence from config, defaults from DB), we extract it.
+
+This repo `v3` contains two related examples:
+
+1. **`sum_rule_engine.py`** — the Pydantic + callable-rule file for filtering and summing integers.
 2. **`matcher_rule_engine.py`** — the simple selection/counting functions, plus a structured Pydantic/rule-based variant.
 
 Together they show two ends of the same design space:
@@ -43,6 +118,16 @@ Where it shows up:
 - `show_errors()` centralises error formatting.
 
 Caveat: DRY can be overdone. In the simple animal file, three small functions are clearer than a generic framework. Repetition is sometimes cheaper than the wrong abstraction.
+
+Core is domain-blind. It never imports from either service. No cycles possible.
+
+Services are siblings. They share the engine, not each other. SumService and MatcherService don't know one another exist.
+
+Rules live with their domain. ExcludeRule is meaningless to the matcher; SubstringRule is meaningless to the sum. Keeping them in the right file enforces this.
+
+DI is constructor injection. SumService(RuleEngine[int]) and MatcherService(RuleEngine[str]). Same class, two type parameters. You can pass a mock, a logging engine, or share one instance if you like.
+
+Composition root is per file's main(). In a real app we'd have one entry point that builds the engine once and hands it to whichever service it needs.
 
 ---
 
