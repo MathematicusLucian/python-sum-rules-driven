@@ -11,10 +11,16 @@ def count_items(items):
     return counts
 
 
-animal_list = ['wolf', 'cat', 'wolf pack', 'wolf', 'wolves', 'wolf'] 
+# ---------------------------------------------------------------------------
+# Runs
+# ---------------------------------------------------------------------------
+if __name__ == "__main__":
 
-print(select_by_condition(animal_list, lambda x: 'wol' in x))
-print(select_by_condition(animal_list, lambda x: x in {'wolf', 'wolves'})) 
-print(select_by_attributes(animal_list, {'wolf'}))
-print(select_by_attributes(animal_list, {'wolf', 'wolves'}))
-print(count_items(animal_list))
+    animal_list = ['wolf', 'cat', 'wolf pack', 'wolf', 'wolves', 'wolf'] 
+
+    print(select_by_condition(animal_list, lambda x: 'wol' in x))                   # ['wolf', 'wolf pack', 'wolf', 'wolves', 'wolf']
+    print(select_by_condition(animal_list, lambda x: x in {'wolf', 'wolves'}))      # ['wolf', 'wolf', 'wolves', 'wolf']
+    print(select_by_attributes(animal_list, {'wolf'}))                              # ['wolf', 'wolf', 'wolf']
+    print(select_by_attributes(animal_list, {'wolf', 'wolves'}))                    # ['wolf', 'wolf', 'wolves', 'wolf']
+    print(count_items(animal_list))                                                 # {'wolf': 3, 'cat': 1, 'wolf pack': 1, 'wolves': 1}
+
