@@ -1,6 +1,5 @@
 from functools import partial
 from typing import Callable, List
-
 from pydantic import BaseModel, Field, field_validator, validate_call
 
 
@@ -107,15 +106,15 @@ sumExcludingTwo: Condition = lambda integer: integer != 2
 sumExcludingTwoB: Condition = lambda integer: "2" not in str(integer)
 
 # factory returning a Condition
-sumExcluding: Callable[[int], Condition] = (
+sumExcludingFactory: Callable[[int], Condition] = (
     lambda integerToExclude: (lambda integer: integer != integerToExclude)
 )
 
 # two-arg predicates (candidates for partial)
-sumExcludingFactory: Callable[[int, int], bool] = (
+sumExcludingPredicate: Callable[[int, int], bool] = (
     lambda integer, integerToExclude: integer != integerToExclude
 )
-sumIncludingFactory: Callable[[int, int], bool] = (
+sumIncludingPredicate: Callable[[int, int], bool] = (
     lambda integer, integerToExclude: integer == integerToExclude
 )
 
@@ -125,8 +124,8 @@ onlyOdds: Condition = lambda integer: integer % 2 == 1
 # partial pre-binds the keyword integerToExclude=2.
 # (Passing 2 positionally would bind it to `integer` instead — symmetric here,
 #  but a trap for asymmetric predicates like `>`.)
-sumExcludingCondition: Condition = partial(sumExcludingFactory, integerToExclude=2)
-sumIncludingCondition: Condition = partial(sumIncludingFactory, integerToExclude=2)
+sumExcludingPredicateWithCondition: Condition = partial(sumExcludingPredicate, integerToExclude=2)
+sumIncludingPredicateWithCondition: Condition = partial(sumIncludingPredicate, integerToExclude=2)
 
 
 # ---------------------------------------------------------------------------
@@ -140,22 +139,22 @@ integers = payload.integers   # coerced + validated
 # ---------------------------------------------------------------------------
 # Runs
 # ---------------------------------------------------------------------------
-print(sumObj.sumOfNumbers1(integers))                           # 8
-print(sumObj.sumOfNumbers1b(integers, sumExcludingTwo))         # 8
-print(sumObj.sumOfNumbers2(integers))                           # 8
-print(sumObj.sumOfNumbers2b(integers, sumExcludingTwo))         # 8
-print(sumObj.sumOfNumbers3(integers))                           # 8
-print(sumObj.sumOfNumbers4(integers))                           # 8
-print(sumObj.sumOfNumbers5(integers))                           # 8
-print(sumObj.sumOfNumbers6(integers, sumExcludingTwo))          # 8
-print(sumObj.sumOfNumbers6(integers, sumExcludingTwoB))         # 8
-print(sumObj.sumOfNumbers6(integers, sumExcluding(2)))          # 8
-print(sumObj.sumOfNumbers6(integers, sumExcludingCondition))    # 8
+print(sumObj.sumOfNumbers1(integers))                                        # 8
+print(sumObj.sumOfNumbers1b(integers, sumExcludingTwo))                      # 8
+print(sumObj.sumOfNumbers2(integers))                                        # 8
+print(sumObj.sumOfNumbers2b(integers, sumExcludingTwo))                      # 8
+print(sumObj.sumOfNumbers3(integers))                                        # 8
+print(sumObj.sumOfNumbers4(integers))                                        # 8
+print(sumObj.sumOfNumbers5(integers))                                        # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingTwo))                       # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingTwoB))                      # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingFactory(2)))                # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingPredicateWithCondition))    # 8
 
-print(sumObj.sumOfNumbers6(integers, sumIncludingCondition))    # 2
+print(sumObj.sumOfNumbers6(integers, sumIncludingPredicateWithCondition))    # 2
 
-print(sumObj.sumOfNumbers6(integers, onlyEvens))                # 6
-print(sumObj.sumOfNumbers6(integers, onlyOdds))                 # 4
+print(sumObj.sumOfNumbers6(integers, onlyEvens))                             # 6
+print(sumObj.sumOfNumbers6(integers, onlyOdds))                              # 4
 
 
 # ---------------------------------------------------------------------------
