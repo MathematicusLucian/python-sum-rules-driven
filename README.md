@@ -47,7 +47,8 @@ This repo `v4` contains:
 
 1. **`core_rules_engine.py.py`** — RuleEngine is generic and stateless. It does filter, count, reduce. The Pydantic + callable-rule file for filtering (primitive operation (filter, count, reduce) goes in the engine)
 2. **`sum_service.py`** — SumService injects the engine and calls reduce(..., operator.add, 0). The simple selection/counting functions, plus a structured Pydantic/rule-based variant.
-2. **`matcher_service.py`** — MatcherService injects the engine and calls filter / count. The simple selection/matching functions, plus a structured Pydantic/rule-based variant.
+3. **`matcher_service.py`** — MatcherService injects the engine and calls filter / count. The simple selection/matching functions, plus a structured Pydantic/rule-based variant.
+4. **`demo.py`** - The demo file.
 
 SumService and MatcherService as siblings, both composing the same RuleEngine. 
 
@@ -76,6 +77,63 @@ SumService and MatcherService as siblings, both composing the same RuleEngine.
 Honest trade-off: the merged version is more machinery. It’s justified when rules are data-driven and we have multiple domains. For a one-off list filter, keep the three functions. We can use the engine when the rules outlive the script.
 
 Potential further consolidation: both services need to resolve `condition > rule > default.` Right now that logic lives in two free functions, `resolve_int_predicate` and `resolve_str_predicate`. If that policy grew (audit logging, precedence from config, defaults from DB), we extract it.
+
+### Ouput
+
+```
+  --- match by condition ---
+  ['wolf', 'wolf pack', 'wolf', 'wolves', 'wolf']
+  ['wolf', 'wolf', 'wolves', 'wolf']
+
+  --- match by attributes ---
+  ['wolf', 'wolf', 'wolf']
+  ['wolf', 'wolf', 'wolves', 'wolf']
+
+  --- match by rule ---
+  SubstringRule   {'kind': 'substring', 'value': 'wol'}         -> ['wolf', 'wolf pack', 'wolf', 'wolves', 'wolf']
+  StrInSetRule    {'kind': 'str_in_set', 'values': {'wolves', 'wolf'}} -> ['wolf', 'wolf', 'wolves', 'wolf']
+
+  --- via SelectionInput ---
+  ['wolf', 'wolf pack', 'wolf', 'wolves', 'wolf']
+
+  --- count ---
+  {'wolf': 3, 'cat': 1, 'wolf pack': 1, 'wolves': 1}
+
+  --- validation errors (aggregated) ---
+  rejected (empty list): 1 error(s)
+    - [too_short] items: List should have at least 1 item after validation, not 0
+  rejected (non-bool predicate): 1 error(s)
+    - [value_error] predicate: Value error, predicate must return bool
+
+  --- END ---
+
+  --- sum by rule ---
+  ExcludeRule          {'kind': 'exclude', 'value': 2}               -> 19
+  IncludeRule          {'kind': 'include', 'value': 2}               -> 2
+  EvensRule            {'kind': 'evens'}                             -> 12
+  OddsRule             {'kind': 'odds'}                              -> 9
+  GreaterThanRule      {'kind': 'greater_than', 'threshold': 3}      -> 15
+  LessThanRule         {'kind': 'less_than', 'threshold': 3}         -> 3
+  DivisibleByRule      {'kind': 'divisible_by', 'divisor': 3}        -> 9
+  IntInSetRule         {'kind': 'int_in_set', 'values': [1, 4, 5]}   -> 10
+
+  --- sum by condition ---
+  19
+  19
+
+  --- via SumInput ---
+  12
+
+  --- validation errors (aggregated) ---
+  rejected (duplicates): 1 error(s)
+    - [value_error] integers: Value error, duplicates not allowed
+  rejected (non-bool condition): 1 error(s)
+    - [condition_not_bool] condition: condition must return bool, got int
+  rejected (empty list): 1 error(s)
+    - [too_short] integers: List should have at least 1 item after validation, not 0
+
+  --- END ---
+```
 
 This repo `v3` contains two related examples:
 
