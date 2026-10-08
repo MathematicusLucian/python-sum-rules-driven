@@ -1,3 +1,5 @@
+from functools import partial
+
 class SumClass:
 
     def sumOfNumbers1(integers):
@@ -28,6 +30,10 @@ class SumClass:
 
     sumOfNumbers5 = lambda integers: sum(integer for integer in integers if integer != 2) 
 
+    sumOfNumbers6 = lambda integers, condition: sum(
+        integer for integer in integers if condition(integer)
+    )
+
 
 sumObj = SumClass
 
@@ -41,6 +47,10 @@ sumIncludingFactory = lambda integer, integerToExclude: integer == integerToExcl
 onlyEvens = lambda integer: integer % 2 == 0
 onlyOdds = lambda integer: integer % 2 == 1
 
+# partial pre-binds the keyword integerToExclude=2 (condition param name otherwise binds 2 to `integer`)
+sumExcludingCondition = partial(sumExcludingFactory, integerToExclude=2) #8
+sumIncludingCondition = partial(sumIncludingFactory, integerToExclude=2) #8 
+
 print(sumObj.sumOfNumbers1(integers)) # 8
 print(sumObj.sumOfNumbers1b(integers, sumExcludingTwo)) # 8
 print(sumObj.sumOfNumbers2(integers)) # 8
@@ -48,3 +58,12 @@ print(sumObj.sumOfNumbers2b(integers, sumExcludingTwo)) # 8
 print(sumObj.sumOfNumbers3(integers)) # 8
 print(sumObj.sumOfNumbers4(integers)) # 8
 print(sumObj.sumOfNumbers5(integers)) # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingTwo)) # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingTwoB)) # 8
+print(sumObj.sumOfNumbers6(integers, sumExcluding(2)))   # 8
+print(sumObj.sumOfNumbers6(integers, sumExcludingCondition)) # 8
+
+print(sumObj.sumOfNumbers6(integers, sumIncludingCondition)) # 2
+
+print(sumObj.sumOfNumbers6(integers, onlyEvens)) # 6
+print(sumObj.sumOfNumbers6(integers, onlyOdds)) # 4
