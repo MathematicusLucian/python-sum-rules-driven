@@ -1,10 +1,8 @@
-# [a for i, a in enumerate(animal_list) if 'wol' in a]
 def select_by_condition(items, predicate):
-    return [item for item in enumerate(items) if predicate(item)]
+    return [item for item in items if predicate(item)]
 
-# [a for i, a in enumerate(animal_list) if a in {'wolf', 'wolves'}]
-def select_by_condition(items, predicate):
-    return [item for i, item in enumerate(items) if predicate(item)]
+def select_by_attributes(items, allowed):
+    return [item for item in items if item in allowed]
 
 def count_items(items):
     counts = {}
@@ -17,4 +15,6 @@ animal_list = ['wolf', 'cat', 'wolf pack', 'wolf', 'wolves', 'wolf']
 
 print(select_by_condition(animal_list, lambda x: 'wol' in x))
 print(select_by_condition(animal_list, lambda x: x in {'wolf', 'wolves'})) 
+print(select_by_attributes(animal_list, {'wolf'}))
+print(select_by_attributes(animal_list, {'wolf', 'wolves'}))
 print(count_items(animal_list))
