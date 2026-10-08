@@ -1,6 +1,9 @@
+from functools import partial
+from typing import Callable
+
 from core_rules_engine import RuleEngine, show_errors
 from matcher_service import MatcherService, SelectionInput, StrRuleAdapter
-from sum_service import IntRuleAdapter, SumInput, SumService
+from sum_service import IntRuleAdapter, SumInput, SumService, onlyEvens
 
 from pydantic import ValidationError
 
@@ -14,6 +17,7 @@ def matcher_demo() -> None:
     matcher = MatcherService(engine)
 
     animal_list = ["wolf", "cat", "wolf pack", "wolf", "wolves", "wolf"]
+    cars_list = ["Ford", "Volvo", "BMW"]
 
     print("--- match by condition ---")
     print(matcher.match_by_condition(animal_list, lambda x: "wol" in x))
@@ -22,6 +26,7 @@ def matcher_demo() -> None:
     print("\n--- match by attributes ---")
     print(matcher.match_by_attributes(animal_list, {"wolf"}))
     print(matcher.match_by_attributes(animal_list, {"wolf", "wolves"}))
+    print(matcher.match_by_attributes(cars_list, {"ford"}))
 
     print("\n--- match by rule ---")
     examples = [
@@ -50,6 +55,23 @@ def matcher_demo() -> None:
         SelectionInput(items=animal_list, predicate=lambda x: x)  # str, not bool
     except ValidationError as e:
         show_errors("non-bool predicate", e)
+
+    x = [car for car in cars if "F" not in car]
+    print(x)
+
+    integers = [12, 22, 56, 78, 123, 900]
+
+    # Equals 2
+    x = [integer for integer in integers if integer == 2]
+    print(x, len(x))
+
+    # Contains 2
+    x = [integer for integer in integers if "2" in str(integer)]
+    print(x, len(x))
+
+    # Even (modulus)
+    x = [integer for integer in integers if integer % 2 == 0]
+    print(x, len(x))
 
     print("\n--- END ---\n")
 
@@ -87,8 +109,9 @@ def sum_demo() -> None:
     print(sums.sum_from_input(payload))
 
     print("\n--- validation errors (aggregated) ---")
+
     try:
-        SumInput(integers=[1, 1, 2], condition=lambda n: n % 2 == 0)
+        SumInput(integers=[1, 1, 2], condition=onlyEvens)
     except ValidationError as e:
         show_errors("duplicates", e)
 
@@ -98,7 +121,7 @@ def sum_demo() -> None:
         show_errors("non-bool condition", e)
 
     try:
-        SumInput(integers=[], condition=lambda n: n % 2 == 0)
+        SumInput(integers=[], condition=onlyEvens)
     except ValidationError as e:
         show_errors("empty list", e)
 

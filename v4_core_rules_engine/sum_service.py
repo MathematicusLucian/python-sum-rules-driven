@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 import operator
 from typing import Annotated, Callable, List, Literal, Optional, Union
 
@@ -25,11 +26,56 @@ from pydantic_core import PydanticCustomError
 from core_rules_engine import Predicate, Rule, RuleEngine, show_errors
 
 # ---------------------------------------------------------------------------
+# Factories and predicates
+# ---------------------------------------------------------------------------
+onlyEvens: Condition = lambda integer: integer % 2 == 0
+onlyOdds: Condition = lambda integer: integer % 2 == 1
+
+sumExcluding: Callable[[int], Condition] = (
+    lambda integerToExclude: (lambda integer: integer != integerToExclude)
+)
+
+sumExcludingFactory: Callable[[int, int], bool] = (
+    lambda integer, integerToExclude: integer != integerToExclude
+)
+sumIncludingFactory: Callable[[int, int], bool] = (
+    lambda integer, integerToExclude: integer == integerToExclude
+)
+
+onlyEvens: Condition = lambda integer: integer % 2 == 0
+onlyOdds: Condition = lambda integer: integer % 2 == 1
+
+# partial pre-binds the keyword integerToExclude=2.
+# (Passing 2 positionally would bind it to `integer` instead — symmetric here,
+#  but a trap for asymmetric predicates like `>`.)
+sumExcludingCondition: Condition = partial(sumExcludingFactory, integerToExclude=2)
+sumIncludingCondition: Condition = partial(sumIncludingFactory, integerToExclude=2)
+
+# ---------------------------------------------------------------------------
+# Validate shared input once, up front
+# ---------------------------------------------------------------------------
+payload = SumInput(integers=integers, condition=sumExcludingTwo)
+integers = payload.integers   # coerced + validated
+
+# ---------------------------------------------------------------------------
 # Type aliases
 # ---------------------------------------------------------------------------
 Condition = Predicate[int]
 IntList = List[int]
 
+# ---------------------------------------------------------------------------
+# A condition described as data (JSON-friendly) rather than a live function
+# ---------------------------------------------------------------------------
+class ByName(BaseModel):
+    kind: Literal["exclude", "include", "evens", "odds"]
+    value: int = 2
+
+    def to_condition(self) -> Condition:
+        match self.kind:
+            case "exclude": return lambda n: n != self.value
+            case "include": return lambda n: n == self.value
+            case "evens":   return lambda n: n % 2 == 0
+            case "odds":    return lambda n: n % 2 == 1
 
 # ---------------------------------------------------------------------------
 # Int rule catalogue
