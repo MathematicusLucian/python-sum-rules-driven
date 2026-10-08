@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from functools import partial
 import operator
+from turtle import numinput
 from typing import Annotated, Callable, List, Literal, Optional, Union
 
 from pydantic import (
@@ -54,8 +55,9 @@ sumIncludingCondition: Condition = partial(sumIncludingFactory, integerToExclude
 # ---------------------------------------------------------------------------
 # Validate shared input once, up front
 # ---------------------------------------------------------------------------
-payload = SumInput(integers=integers, condition=sumExcludingTwo)
-integers = payload.integers   # coerced + validated
+# payload = numinput(integers=integers, condition=sumExcludingTwo)
+# payload = SumInput(integers=integers, rule=IntRuleAdapter.validate_python({"kind": "evens"}))
+# integers = payload.integers   # coerced + validated
 
 # ---------------------------------------------------------------------------
 # Type aliases
